@@ -1,7 +1,7 @@
 import boto3
 import os
 
-client = boto3.client('ec2')
+ec2 = boto3.client('ec2')
 
 instance_id = os.environ.get('INSTANCE_ID')
 
@@ -20,7 +20,7 @@ def lambda_handler(event, context):
     }
 
 def stop_instance():
-  client.stop_instances(
+  ec2.stop_instances(
     InstanceIds=[
       instance_id
     ]
