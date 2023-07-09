@@ -1,0 +1,71 @@
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+
+  DomainName:
+    Type: String
+    Default: foundry........
+
+  ServerEC2InstanceType:
+    Type: String
+    Default: t2.micro
+
+  ServerAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Description: Do not change it, unless you know what you are doing
+    Default: /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id
+
+Resources:
+  GameS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      EndpointConfiguration:
+        Type: REGIONAL
+
+  GameDownloadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Timeout: 60
+      MemorySize: 1024
+      CodeUri: functions/game/download
+      Handler: main.lambda_handler
+      Policies:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: s3:*
+            Resource:
+              - !Sub arn:aws:s3:::${GameS3Bucket}
+              - !Sub arn:aws:s3:::${GameS3Bucket}/*
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref GameS3Bucket
+      Events:
+        Download:
+          Type: Api
+          Properties:
+            Path: /game/download
+            Method: get
+            RestApiId:
+              Ref: Api
+
+  ApiDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Sub ${DomainName}.
+      Name: !Sub api.${DomainName}.
+      Type: CNAME
+      TTL: 900
+      ResourceRecords:
+      - !Sub "${Api}.execute-api.${AWS::Region}.amazonaws.com"
