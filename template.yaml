@@ -201,7 +201,7 @@ Resources:
           - Effect: Allow
             Action:
               - ec2:StartInstances
-            Resource: !Sub arn:aws:ec2:${AWS::Region}:403249214214:instance/${EC2Instance}
+            Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${EC2Instance}
       Events:
         Start:
           Type: Api
@@ -231,7 +231,7 @@ Resources:
           - Effect: Allow
             Action:
               - ec2:StopInstances
-            Resource: !Sub arn:aws:ec2:${AWS::Region}:403249214214:instance/${EC2Instance}
+            Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${EC2Instance}
       Events:
         Stop:
           Type: Api
