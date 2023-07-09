@@ -94,13 +94,100 @@ Resources:
             #!/bin/bash -xe
             sudo apt update
 
-            sudo apt install awscli unzip nginx
+            sudo apt install -y awscli unzip nginx
 
             # NodeJS
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
             source ~/.nvm/nvm.sh
             nvm install 18
   # #     UserData:
+  #       Fn::Base64: !Sub |
+  #         #!/bin/bash -xe
+  #         mkdir /tmp/ssm
+  #         cd /tmp/ssm
+  #         export HOME=/home/ssm-user
+  #         exec > >(tee /var/log/initial-log.log|logger -t user-data -s 2>/dev/console) 2>&1
+  #           curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+  #           sudo dpkg -i session-manager-plugin.deb
+  #           curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+  #           apt-get install -y nodejs
+  #           apt-get install nginx unzip -y
+  #           rm /etc/nginx/sites-enabled/default
+  #           service nginx restart
+  #           mkdir -p /home/ssm-user/foundry
+  #           cd /home/ssm-user/foundry
+  #           sudo apt-get install awscli -y
+  #           aws s3 cp s3://${DownloadS3}/foundryvtt.zip ./foundryvtt.zip
+  #           unzip foundryvtt.zip
+  #           rm foundryvtt.zip
+  #           npm install pm2 -g
+  #         exec > >(tee /var/log/start.log|logger -t user-data -s 2>/dev/console) 2>&1
+  #           mkdir -p /home/ssm-user/.local/share/FoundryVTT
+  #           pm2 start "node /home/ssm-user/foundry/resources/app/main.js --port=8080" --name "foundry"
+  #           sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ssm-user --hp /home/ssm-user
+  #           pm2 save
+  #           sudo chmod a+rwx /home/ssm-user -R
+  #           echo "{
+  #             \"accessKeyId\": \"${Credentials}\",
+  #             \"secretAccessKey\": \"${Credentials.SecretAccessKey}\",
+  #             \"region\": \"${AWS::Region}\"
+  #             }" | tee /home/ssm-user/.local/share/FoundryVTT/Config/aws.json > /dev/null
+  #           mkdir /var/log/nginx/foundry
+  #           echo "
+  #           # Most sites won't have configured favicon or robots.txt
+  #           # and since its always grabbed, turn it off in access log
+  #           # and turn off it's not-found error in the error log
+  #           location = /favicon.ico { access_log off; log_not_found off; }
+  #           location = /robots.txt { access_log off; log_not_found off; }
+  #           location = /apple-touch-icon.png { access_log off; log_not_found off; }
+  #           location = /apple-touch-icon-precomposed.png { access_log off; log_not_found off; }
+
+  #           # Rather than just denying .ht* in the config, why not deny
+  #           # access to all .invisible files
+  #           location ~ /\. { deny  all; access_log off; log_not_found off; }
+  #           " | tee /etc/nginx/conf.d/drop > /dev/null
+
+  #         echo "server {
+  #           listen 80;
+
+  #           # Adjust this to your the FQDN you chose!
+  #           server_name                 ${HostedZoneName};
+
+  #           access_log                  /var/log/nginx/foundry/access.log;
+  #           error_log                   /var/log/nginx/foundry/error.log;
+  #           include conf.d/drop;
+
+  #           location ^~ /.well-known/acme-challenge {
+  #               allow all;
+  #               root /var/www/letsencrypt;
+  #               auth_basic off;
+  #           }
+
+  #           location / {
+  #               proxy_set_header        Host \$host;
+  #               proxy_set_header        X-Real-IP \$remote_addr;
+  #               proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
+  #               proxy_set_header        X-Forwarded-Proto \$scheme;
+
+  #               # Adjust the port number you chose!
+  #               proxy_pass              http://127.0.0.1:8080;
+
+  #               proxy_http_version      1.1;
+  #               proxy_set_header        Upgrade \$http_upgrade;
+  #               proxy_set_header        Connection \"Upgrade\";
+  #               proxy_read_timeout      90;
+
+  #               # Again, adjust both your FQDN and your port number here!
+  #               proxy_redirect          http://127.0.0.1:8080 http://${HostedZoneName};
+  #           }
+  #         }" | tee /etc/nginx/sites-available/foundry > /dev/null
+  #         ln -s /etc/nginx/sites-available/foundry /etc/nginx/sites-enabled/foundry
+  #         sudo service nginx restart
+  #         exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+  #           snap install core; snap refresh core
+  #           snap install --classic certbot
+  #           ln -s /snap/bin/certbot /usr/bin/certbot
+  #           sudo certbot --nginx -n --agree-tos -m ${Email} -d ${HostedZoneName}
 
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -133,7 +220,7 @@ Resources:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
-      InstanceId: !Ref EC2Instance
+      # InstanceId: !Ref EC2Instance
 
   EC2DnsRecord:
     Type: AWS::Route53::RecordSet
@@ -190,18 +277,18 @@ Resources:
       Environment:
         Variables:
           DNS_RECORD: !Ref EC2DnsRecord
-          INSTANCE_ID: !Ref EC2Instance
-      Policies:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - ec2:DescribeInstances
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - ec2:StartInstances
-            Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${EC2Instance}
+      #     INSTANCE_ID: !Ref EC2Instance
+      # Policies:
+      #   Version: "2012-10-17"
+      #   Statement:
+      #     - Effect: Allow
+      #       Action:
+      #         - ec2:DescribeInstances
+      #       Resource: "*"
+      #     - Effect: Allow
+      #       Action:
+      #         - ec2:StartInstances
+      #       Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${EC2Instance}
       Events:
         Start:
           Type: Api
@@ -218,20 +305,20 @@ Resources:
       Timeout: 60
       CodeUri: functions/server/stop
       Handler: main.lambda_handler
-      Environment:
-        Variables:
-          INSTANCE_ID: !Ref EC2Instance
-      Policies:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - ec2:DescribeInstances
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - ec2:StopInstances
-            Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${EC2Instance}
+      # Environment:
+      #   Variables:
+      #     INSTANCE_ID: !Ref EC2Instance
+      # Policies:
+      #   Version: "2012-10-17"
+      #   Statement:
+      #     - Effect: Allow
+      #       Action:
+      #         - ec2:DescribeInstances
+      #       Resource: "*"
+      #     - Effect: Allow
+      #       Action:
+      #         - ec2:StopInstances
+      #       Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${EC2Instance}
       Events:
         Stop:
           Type: Api
