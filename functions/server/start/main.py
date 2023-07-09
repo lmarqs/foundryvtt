@@ -6,7 +6,7 @@ import os
 ec2 = boto3.client('ec2')
 route = boto3.client('route53')
 
-domain_name = os.environ.get('DOMAIN_NAME')
+dns_record = os.environ.get('DNS_RECORD')
 instance_id = os.environ.get('INSTANCE_ID')
 
 def lambda_handler(event, context):
@@ -52,7 +52,7 @@ def redirect():
   return {
     'statusCode': 301,
     'headers':{
-      'Location': f'https://{domain_name}',
+      'Location': f'https://{dns_record}',
       'Cache-Control': 'no-store, max-age=0'
     }
   }

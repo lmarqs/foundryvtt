@@ -189,8 +189,7 @@ Resources:
       Handler: main.lambda_handler
       Environment:
         Variables:
-          DOMAIN_NAME: !Sub ${DomainName}.
-          HOSTED_ZONE_ID: !Ref HostedZoneId
+          DNS_RECORD: !Ref EC2DnsRecord
           INSTANCE_ID: !Ref EC2Instance
       Policies:
         Version: "2012-10-17"
