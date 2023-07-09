@@ -180,6 +180,39 @@ Resources:
             RestApiId:
               Ref: Api
 
+  ServerStartFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Timeout: 60
+      CodeUri: functions/server/start
+      Handler: main.lambda_handler
+      Environment:
+        Variables:
+          DOMAIN_NAME: !Sub ${DomainName}.
+          HOSTED_ZONE_ID: !Ref HostedZoneId
+          INSTANCE_ID: !Ref EC2Instance
+      Policies:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - ec2:DescribeInstances
+              - ec2:StartInstances
+            Resource: !Sub arn:aws:ec2:us-eas:403249214214:instance/${EC2Instance}
+          - Effect: Allow
+            Action:
+              - route53:ChangeResourceRecordSets
+            Resource: !Sub arn:aws:route53:::hostedzone/${HostedZoneId}
+      Events:
+        Start:
+          Type: Api
+          Properties:
+            Path: /instance/start
+            Method: get
+            RestApiId:
+              Ref: Api
+
   ApiDnsRecord:
     Type: AWS::Route53::RecordSet
     Properties:
