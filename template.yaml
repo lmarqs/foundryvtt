@@ -207,7 +207,7 @@ Resources:
         Start:
           Type: Api
           Properties:
-            Path: /instance/start
+            Path: /server/start
             Method: get
             RestApiId:
               Ref: Api
@@ -233,7 +233,7 @@ Resources:
         Stop:
           Type: Api
           Properties:
-            Path: /instance/stop
+            Path: /server/stop
             Method: get
             RestApiId:
               Ref: Api
