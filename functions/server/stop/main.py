@@ -1,4 +1,5 @@
 import boto3
+import json
 import os
 
 ec2 = boto3.client('ec2')
@@ -6,6 +7,8 @@ ec2 = boto3.client('ec2')
 instance_id = os.environ.get('INSTANCE_ID')
 
 def lambda_handler(event, context):
+  print(json.dumps(event))
+
   try:
     stop_instance()
     return {
