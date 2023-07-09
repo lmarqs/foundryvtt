@@ -212,6 +212,32 @@ Resources:
             RestApiId:
               Ref: Api
 
+  ServerStopFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Timeout: 60
+      CodeUri: functions/server/stop
+      Handler: main.lambda_handler
+      Environment:
+        Variables:
+          INSTANCE_ID: !Ref EC2Instance
+      Policies:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - ec2:StopInstances
+            Resource: !Sub arn:aws:ec2:us-eas:403249214214:instance/${EC2Instance}
+      Events:
+        Stop:
+          Type: Api
+          Properties:
+            Path: /instance/stop
+            Method: get
+            RestApiId:
+              Ref: Api
+
   ApiDnsRecord:
     Type: AWS::Route53::RecordSet
     Properties:
