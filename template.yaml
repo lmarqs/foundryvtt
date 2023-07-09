@@ -11,11 +11,11 @@ Parameters:
     Type: String
     Default: foundry........
 
-  ServerEC2InstanceType:
+  EC2InstanceType:
     Type: String
     Default: t2.micro
 
-  ServerAMI:
+  AMI:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Description: Do not change it, unless you know what you are doing
     Default: /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id
@@ -24,6 +24,126 @@ Resources:
   GameS3Bucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
+
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-server-s3-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Sub arn:aws:s3:::${GameS3Bucket}
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:GetObjectAttributes
+                  - s3:GetObjectAcl
+                  - s3:PutObjectAcl
+                Resource: !Sub arn:aws:s3:::${GameS3Bucket}/*
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2Role
+
+  EC2KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: !Sub ${AWS::StackName}-ec2-key-pair
+      KeyFormat: pem
+      KeyType: rsa
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref EC2InstanceType
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      KeyName: !Ref EC2KeyPair
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 30
+            DeleteOnTermination: true
+            Encrypted: false
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            sudo apt update
+
+            sudo apt install awscli unzip nginx
+
+            # NodeJS
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+            source ~/.nvm/nvm.sh
+            nvm install 18
+  # #     UserData:
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupName: !Sub ${AWS::StackName}-server-sg
+      GroupDescription: Security group for the Foundry VTT server
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          Description: All egress
+          IpProtocol: -1
+      SecurityGroupIngress:
+        - CidrIp: "0.0.0.0/0"
+          Description: HTTPS
+          FromPort: 443
+          IpProtocol: TCP
+          ToPort: 443
+        - CidrIp: "0.0.0.0/0"
+          Description: HTTP
+          IpProtocol: TCP
+          FromPort: 80
+          ToPort: 80
+        - CidrIp: "0.0.0.0/0"
+          Description: SSH
+          IpProtocol: TCP
+          FromPort: 22
+          ToPort: 22
+
+  EC2ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref EC2Instance
+
+  EC2DnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Sub ${DomainName}.
+      Name: !Sub game.${DomainName}.
+      Type: CNAME
+      TTL: 900
+      ResourceRecords:
+      - !GetAtt EC2ElasticIP.PublicIp
 
   Api:
     Type: AWS::Serverless::Api
