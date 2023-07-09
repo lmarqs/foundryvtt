@@ -6,12 +6,18 @@ client = boto3.client('ec2')
 instance_id = os.environ.get('INSTANCE_ID')
 
 def lambda_handler(event, context):
-  stop_instance()
+  try:
+    stop_instance()
+    return {
+      "statusCode": 200,
+      "body": "Shutting down"
+    }
 
-  return {
-    "statusCode": 200,
-    "body": "Shutting down"
-  }
+  except Exception as e:
+    return {
+      "statusCode": 500,
+      "body": str(e),
+    }
 
 def stop_instance():
   client.stop_instances(

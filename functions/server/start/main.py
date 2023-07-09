@@ -12,22 +12,29 @@ instance_id = os.environ.get('INSTANCE_ID')
 def lambda_handler(event, context):
   print(json.dumps(event))
 
-  if is_instance_running():
-      print('is already running')
-      return redirect()
+  try:
+    if is_instance_running():
+        print('is already running')
+        return redirect()
 
-  print('is not yet running')
+    print('is not yet running')
 
-  start_instance()
+    start_instance()
 
-  print('instances started')
+    print('instances started')
 
-  while not is_instance_running():
-    sleep(1)
+    while not is_instance_running():
+      sleep(1)
 
-  print('is running now')
+    print('is running now')
 
-  return redirect()
+    return redirect()
+
+  except Exception as e:
+    return {
+      'statusCode': 500,
+      'body': str(e),
+    }
 
 def describe_instance():
   response = ec2.describe_instances(
@@ -53,6 +60,6 @@ def redirect():
     'statusCode': 301,
     'headers':{
       'Location': f'https://{dns_record}',
-      'Cache-Control': 'no-store, max-age=0'
+      'Cache-Control': 'no-store, max-age=0',
     }
   }
