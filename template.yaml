@@ -239,34 +239,6 @@ Resources:
       EndpointConfiguration:
         Type: REGIONAL
 
-  GameDownloadFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Runtime: python3.8
-      Timeout: 60
-      MemorySize: 1024
-      CodeUri: functions/game/download
-      Handler: main.lambda_handler
-      Policies:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action: s3:*
-            Resource:
-              - !Sub arn:aws:s3:::${GameS3Bucket}
-              - !Sub arn:aws:s3:::${GameS3Bucket}/*
-      Environment:
-        Variables:
-          S3_BUCKET: !Ref GameS3Bucket
-      Events:
-        Download:
-          Type: Api
-          Properties:
-            Path: /game/download
-            Method: get
-            RestApiId:
-              Ref: Api
-
   ServerStartFunction:
     Type: AWS::Serverless::Function
     Properties:
