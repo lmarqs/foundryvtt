@@ -8,4 +8,4 @@ fi
 
 mkdir -p $HOME/foundryvtt/data/$TENANT
 
-node $HOME/foundryvtt/bin/resources/app/main.js --dataPath=$HOME/foundryvtt/data/$TENANT --port=8080
+pm2 start "node $HOME/foundryvtt/bin/resources/app/main.js --dataPath=$HOME/foundryvtt/data/$TENANT --port=8080" --name "foundryvtt"
