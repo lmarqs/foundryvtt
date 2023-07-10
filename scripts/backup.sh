@@ -1,5 +1,10 @@
 #!/bin/bash -xe
-TENANT="${1:=default}"
+TENANT="$1"
+
+if [ -n "$1" ]
+then
+  TENANT="default"
+fi
 
 VERSION=$(date +'%Y%m%d%H%M%S')
 

@@ -1,5 +1,10 @@
 #!/bin/bash -xe
-TENANT="${1:=default}"
+TENANT="$1"
+
+if [ -n "$1" ]
+then
+  TENANT="default"
+fi
 
 mkdir -p $HOME/foundryvtt/data/$TENANT
 
