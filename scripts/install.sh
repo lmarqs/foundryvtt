@@ -5,14 +5,6 @@ mkdir -p $HOME/foundryvtt/releases
 
 aws s3 sync s3://$GAME_S3_BUCKET/releases $HOME/foundryvtt/releases
 
-sudo cat << EOF > /etc/nginx/sites-available/foundry
-  server {
-    location / {
-      proxy_pass http://localhost:8080;
-    }
-  }
-EOF
-
-ln -s /etc/nginx/sites-available/foundryvtt /etc/nginx/sites-enabled/foundryvtt
+sudo cp $HOME/foundryvtt/scripts/nginx.conf /etc/nginx/sites-available/default
 
 sudo service nginx restart
