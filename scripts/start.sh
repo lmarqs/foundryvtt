@@ -1,8 +1,7 @@
 #!/bin/bash -xe
 TENANT="$1"
 
-if [ -n "$1" ]
-then
+if [ -z "${TENANT}" ]; then
   TENANT="default"
 fi
 
