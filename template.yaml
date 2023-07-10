@@ -227,7 +227,7 @@ Resources:
     Properties:
       HostedZoneName: !Sub ${DomainName}.
       Name: !Sub game.${DomainName}.
-      Type: CNAME
+      Type: A
       TTL: 900
       ResourceRecords:
       - !GetAtt EC2ElasticIP.PublicIp
